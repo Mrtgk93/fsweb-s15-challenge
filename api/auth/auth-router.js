@@ -1,7 +1,25 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const {
+  validatePayload,
+  passwordCheck,
+  usernameCheck,
+} = require("./auth-middleware");
+const userModel = require("../models/user-model");
+const bcryptjs = require("bcryptjs");
+const utils = require("../../secrets/utils");
 
-router.post('/register', (req, res) => {
-  res.end('kayıt olmayı ekleyin, lütfen!');
+router.post("/register", validatePayload, async (req, res, next) => {
+  try {
+    let inserted = await userModel.insert({
+      username: req.body.username,
+      password: bcryptjs.hashSync(req.body.password, 8),
+      rolename: req.body.rolename,
+    });
+    res.status(201).json(inserted);
+  } catch (error) {
+    next(error);
+  }
+
   /*
     EKLEYİN
     Uçnoktanın işlevselliğine yardımcı olmak için middlewarelar yazabilirsiniz.
@@ -29,9 +47,23 @@ router.post('/register', (req, res) => {
   */
 });
 
-router.post('/login', (req, res) => {
-  res.end('girişi ekleyin, lütfen!');
-  /*
+router.post(
+  "/login",
+  validatePayload,
+  usernameCheck,
+  passwordCheck,
+  async (req, res, next) => {
+    try {
+      const payload = {
+        username: req.body.username,
+        rolename: req.body.rolename,
+      };
+      const token = utils.createUserToken(payload, "1d");
+      res.json({ message: `welcome ${payload.username}`, token: token });
+    } catch (error) {
+      next(error);
+    }
+    /*
     EKLEYİN
     Uçnoktanın işlevselliğine yardımcı olmak için middlewarelar yazabilirsiniz.
 
@@ -54,6 +86,7 @@ router.post('/login', (req, res) => {
     4- "username" db de yoksa ya da "password" yanlışsa BAŞARISIZ giriş,
       şu mesajı içermelidir: "geçersiz kriterler".
   */
-});
+  }
+);
 
 module.exports = router;
